@@ -1,77 +1,83 @@
-# set environment
-from arcpy import env
+import sys
 import os.path
+from arcpy import env
 from datetime import date
 
-######## IMPORTANT: you must set these variables for the script to work ############
-env.workspace="C:/Users/ltorre37/OneDrive - University of Illinois - Urbana/UP510" #change path to where all the data lives
-path = "C:/Users/ltorre37/OneDrive - University of Illinois - Urbana/UP510/Urbana_PaRIT/Urbana_PaRIT.gdb" #path to store a copy of data
+def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, theme, author, pdf_url, unique_id):
+    #set the workspace environment
+    env.workspace = datapath
 
-#path to all_plans feature class (this is the hosted layer for the app!)
-plans_path = "C:/Users/ltorre37/OneDrive - University of Illinois - Urbana/UP510/UP510/plans.gdb/all_plans_layer" 
+    #create a copy of the feature class so we don't modify the original
+    copypath = os.path.join(gdbpath, "{0}_copy".format(featureclass))
+    arcpy.management.CopyFeatures(featureclass, copypath)
 
-featureclass = 'TIP_220921_points_Buffer' #name of feature class that we want to add to the tool
-plan_title = 'Transportation Improvement Program (TIP) FY 2020-2025' #change to correct plan title
-plan_year = '2020' #change to correct plan year
-theme = 'transportation' #change to correct plan theme (housing, transportation, social/economic, comp plan, small-area)
-author = 'Champaign-Urbana Urbanized Area Transportation Study (CUUATS)' #change to correct plan author
-pdf_url = 'https://ccrpc.org/documents/tip-2020-2025/introduction-and-background-tip-fy20-25/' #change to correct URL
-unique_id = 'project_title' #change to a field in your feature class that is unique to each geometry in the plan feature class
+    #reset featureclass to the copy
+    featureclass = copypath
 
-####################################################################################
+    #add the fields (columns) to the feature class
+    dtype = 'TEXT'  # most of our fields are going to be text
+    arcpy.management.AddFields(featureclass,
+                            [['plan_title', dtype],
+                                ['plan_year', dtype],
+                                ['theme', dtype],
+                                ['author', dtype],
+                                ['pdf_url', dtype]])
 
-#create a copy of the feature class so we don't modify the original
-copypath = os.path.join(path, "{0}_copy".format(featureclass))
-arcpy.management.CopyFeatures(featureclass,copypath)
+    # get objects to iterate through
+    cur = arcpy.UpdateCursor(featureclass)
+    fields = [i.name for i in arcpy.ListFields(featureclass)]
 
-#reset featureclass to the copy
-featureclass = copypath
+    #filter list of fields to update only ones we added
+    fields = fields[-5:]
 
-#add the fields (columns) to the feature class
-dtype = 'TEXT' #most of our fields are going to be text
-arcpy.management.AddFields(featureclass, 
-                          [['plan_title', dtype],
-                          ['plan_year', dtype],
-                          ['theme', dtype],
-                          ['author', dtype],
-                          ['pdf_url', dtype]])
+    #creates list of values from custom variables defined above
+    values = [plan_title, plan_year, theme, author, pdf_url]
 
-# get objects to iterate through
-cur = arcpy.UpdateCursor(featureclass)
-fields = [i.name for i in arcpy.ListFields(featureclass)]
+    #inputs values from custom variables into corresponding fields
+    for row in cur:
+        for i in range(len(fields)):
+            row.setValue(fields[i], values[i])
+            cur.updateRow(row)
 
-#filter list of fields to update only ones we added
-fields = fields[-5:]
+    # Next, we will add a last_update field to show when that feature class was last processed
+    arcpy.management.AddField(featureclass, 'last_update', 'DATE')
 
-#creates list of values from custom variables defined above
-values = [plan_title, plan_year, theme, author, pdf_url]
+    # Automatically fills the last_update field with today's date
+    with arcpy.da.UpdateCursor(featureclass, 'last_update') as rows:
+        for row in rows:
+            rows.updateRow([date.today().strftime('%m/%d/%Y')])
 
-#inputs values from custom variables into corresponding fields
-for row in cur:
-    for i in range(len(fields)):
-        row.setValue(fields[i], values[i])
-        cur.updateRow(row)
+    #Next, we will delete all unnecessary fields
+    newfields = [f.name for f in arcpy.ListFields(featureclass)]
 
-# Next, we will add a last_update field to show when that feature class was last processed
-arcpy.management.AddField(featureclass, 'last_update', 'DATE')
+    #IMPORTANT: Double check that these fields are correct. This is case sensitive.
+    fieldstokeep = ['OBJECTID', 'Shape', 'Shape_Length', 'Shape_Area', unique_id,
+                    'plan_title', 'plan_year', 'theme', 'author', 'pdf_url', 'last_update']
+    fieldstodelete = list(set(newfields)-set(fieldstokeep))
 
-# Automatically fills the last_update field with today's date
-with arcpy.da.UpdateCursor(featureclass, 'last_update') as rows:
-    for row in rows:
-        rows.updateRow([date.today().strftime('%m/%d/%Y')]) 
-        
-#Next, we will delete all unnecessary fields
-newfields = [f.name for f in arcpy.ListFields(featureclass)]
+    #deletes fields
+    arcpy.DeleteField_management(featureclass, fieldstodelete)
 
-#IMPORTANT: Double check that these fields are correct. This is case sensitive.
-fieldstokeep = ['OBJECTID','Shape','Shape_Length', 'Shape_Area',unique_id,'plan_title','plan_year','theme','author','pdf_url', 'last_update']
-fieldstodelete = list(set(newfields)-set(fieldstokeep))
+    #renames unique_id field to match the plans geodatabase
+    arcpy.AlterField_management(featureclass, unique_id,'name', clear_field_alias="TRUE")
 
-#deletes fields
-arcpy.DeleteField_management(featureclass, fieldstodelete)
+    #finally, we append the resulting feature class to the all_plans feature class in the plans.gdb
+    arcpy.Append_management(featureclass, planspath, schema_type='NO_TEST')
 
-#renames unique_id field to match the plans geodatabase
-arcpy.AlterField_management(featureclass, unique_id, 'name', clear_field_alias="TRUE")
+    return print("The script has run successfully. The new plan has been appended to the plans layer.")
 
-#finally, we append the resulting feature class to the all_plans feature class in the plans.gdb
-arcpy.Append_management(featureclass, plans_path, schema_type='NO_TEST')
+if __main__ == '__main__':
+    paras = sys.argv[-10:]
+
+    datapath = str(paras[0]) #path of new data to add to geodatabase
+    gdbpath = str(paras[1]) #path of geodatabase
+    planspath = str(paras[2]) #path to all_plans feature class (this is the hosted layer for the app!)
+    featureclass = str(paras[3]) #name of feature class that we want to add to the tool
+    plan_title = str(paras[4])
+    plan_year = str(paras[5])
+    theme = str(paras[6]) #housing, transportation, social/economic, comp plan, small-area
+    author = str(paras[7])
+    pdf_url = str(paras[8])
+    unique_id = str(paras[9]) #field that is unique to the data
+
+    main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, theme, author, pdf_url, unique_id)
