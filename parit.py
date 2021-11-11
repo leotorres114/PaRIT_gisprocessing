@@ -56,7 +56,10 @@ def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, them
     fieldstodelete = list(set(newfields)-set(fieldstokeep))
 
     #deletes fields
-    arcpy.DeleteField_management(featureclass, fieldstodelete)
+    if len(fieldstodelete) == 0:
+        pass
+    else:
+        arcpy.DeleteField_management(featureclass, fieldstodelete)
 
     #renames unique_id field to match the plans geodatabase
     arcpy.AlterField_management(featureclass, unique_id,'name', clear_field_alias="TRUE")
