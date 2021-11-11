@@ -69,7 +69,7 @@ def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, them
 
     return print("The script has run successfully. The new plan has been appended to the plans layer.")
 
-if __main__ == '__main__':
+if __name__ == '__main__':
     paras = sys.argv[-10:]
 
     datapath = str(paras[0]) #path of new data to add to geodatabase
