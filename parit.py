@@ -4,6 +4,17 @@ from arcpy import env
 from datetime import date
 
 def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, theme, author, pdf_url, unique_id):
+    """
+    This script does the following:
+    1. Sets ArcGIS geoprocessing env
+    2. Creates a copy of the input featureclass to be added to the plans gdb
+    3. Inputs CLI args into corresponding field values
+    4. Autofills 'last_update' field value
+    5. Removes unnecessary fields
+    6. Renames fields unique to each feature in the feature class
+    7. Appends the input featureclass to the plans geodatabase
+    """
+    
     #set the workspace environment
     env.workspace = datapath
 
