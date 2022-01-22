@@ -1,9 +1,10 @@
 import sys
 import os.path
+import argparse
 from arcpy import env
 from datetime import date
 
-def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, theme, author, pdf_url, unique_id):
+def main(params):
     """
     This script does the following:
     1. Sets ArcGIS geoprocessing env
@@ -14,6 +15,16 @@ def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, them
     6. Renames fields unique to each feature in the feature class
     7. Appends the input featureclass to the plans geodatabase
     """
+    datapath = params.data #path of new data to add to geodatabase
+    gdbpath = params.gdb #path of geodatabase
+    planspath = params.allplans #path to all_plans feature class (this is the hosted layer for the app!)
+    featureclass = params.fc #name of feature class that we want to add to the tool
+    plan_title = params.title
+    plan_year = params.year
+    theme = params.theme #housing, transportation, social/economic, comp plan, small-area
+    author = params.author
+    pdf_url = params.pdf
+    unique_id = params.id #field that is unique to the data
     
     #set the workspace environment
     env.workspace = datapath
@@ -81,17 +92,19 @@ def main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, them
     return print("The script has run successfully. The new plan has been appended to the plans layer.")
 
 if __name__ == '__main__':
-    paras = sys.argv[-10:]
+    parser = argparse.ArgumentParser(description='Automate GIS data processing for PaRIT')
 
-    datapath = str(paras[0]) #path of new data to add to geodatabase
-    gdbpath = str(paras[1]) #path of geodatabase
-    planspath = str(paras[2]) #path to all_plans feature class (this is the hosted layer for the app!)
-    featureclass = str(paras[3]) #name of feature class that we want to add to the tool
-    plan_title = str(paras[4])
-    plan_year = str(paras[5])
-    theme = str(paras[6]) #housing, transportation, social/economic, comp plan, small-area
-    author = str(paras[7])
-    pdf_url = str(paras[8])
-    unique_id = str(paras[9]) #field that is unique to the data
+    parser.add_argument('--data', help='path of data to add to PaRIT')
+    parser.add_argument('--gdb', help='path of plans geodatabase')
+    parser.add_argument('--allplans', help="""path to all_plans feature class (PaRIT's hosted layer""")
+    parser.add_argument('--fc', help='name of feature class to process')
+    parser.add_argument('--title', help='title of the plan')
+    parser.add_argument('--year', help='year when plan was created')
+    parser.add_argument('--theme', help='housing, transportation, social/economic, comp plan, small-area')
+    parser.add_argument('--author', help='organization that authored the plan')
+    parser.add_argument('--pdf', help='URL of plan PDF')
+    parser.add_argument('--id', help='unique column for each plan project')
 
-    main(datapath, gdbpath, planspath, featureclass, plan_title, plan_year, theme, author, pdf_url, unique_id)
+    args = parser.parse_args()
+
+    main(args)
