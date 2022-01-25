@@ -3,6 +3,16 @@ Python script that automates the processing of GIS data to add on to the City of
 
 Tool can be found here: [link](https://arcg.is/nO0jm)
 
+# Script Processing Steps
+This script does the following:
+1. Sets ArcGIS geoprocessing env
+2. Creates a copy of the input featureclass to be added to the plans gdb
+3. Inputs CLI args into corresponding field values
+4. Autofills 'last_update' field value
+5. Removes unnecessary fields
+6. Renames fields unique to each feature in the feature class
+7. Appends the input featureclass to the plans geodatabase
+
 # Run the Script
 
 We can run this Python script via the command line using [these](https://pro.arcgis.com/en/pro-app/2.8/arcpy/get-started/using-conda-with-arcgis-pro.htm) instructions from ArcGIS Pro's Python documentation. 
