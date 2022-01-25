@@ -13,10 +13,10 @@ We can run this Python script via the command line using [these](https://pro.arc
   --gdb /path/to/plans/geodatabase \
   --allplans /path/to/allplans/featureclass \ #this is PaRIT's hosted layer
   --fc name_of_featureclass_process \
-  --title plan_title
-  --year plan_year
-  --theme {housing, transportation, social/economic, comp plan, small-area}
-  --author author_of_plans
-  --pdf {PDF_URL}
+  --title plan_title \
+  --year plan_year \
+  --theme {housing, transportation, social/economic, comp plan, small-area} \
+  --author author_of_plans \
+  --pdf {PDF_URL} \
   --id unique_column_name
 ```
